@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cappuccino ☕ Public Social Chat</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Font Awesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f0d0c;
+            color: #f3f4f6;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(30, 27, 24, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d97706;
+            border-radius: 3px;
+        }
+        /* Multi-page Navigation Transitions */
+        .app-page {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.25s ease-in-out;
+        }
+        .app-page.active {
+            display: flex;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+    <header id="app-header" class="bg-stone-900/90 border-b border-amber-900/30 px-4 py-3 flex items-center justify-between shrink-0 z-30">
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('page-dashboard')">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-800 flex items-center justify-center text-white font-bold shadow-md shadow-amber-900/30">
+                <i class="fa-solid font-bold fa-mug-hot"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg text-amber-500 tracking-wide leading-none">Cappuccino</h1>
+                <p class="text-[10px] text-stone-400">Public Live Social Network</p>
+            </div>
+        </div>
+        
+        <!-- Header Controls for Authenticated Users -->
+        <div id="header-auth-controls" class="hidden items-center space-x-3">
+            <button onclick="openCurrentProfile()" class="flex items-center space-x-2 bg-stone-800 hover:bg-stone-700 px-3 py-1.5 rounded-full border border-stone-700 transition">
+                <img id="hdr-user-avatar" src="https://placehold.co/100x100/d97706/ffffff?text=U" class="w-6 h-6 rounded-full object-cover">
+                <span id="hdr-user-name" class="text-xs font-medium text-stone-200 truncate max-w-[100px]">User</span>
+            </button>
+            <button onclick="handleLogout()" title="Logout" class="w-8 h-8 rounded-full bg-stone-800 hover:bg-red-950/50 hover:text-red-400 border border-stone-700 flex items-center justify-center text-stone-400 transition">
+                <i class="fa-solid fa-right-from-bracket text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 relative w-full h-full overflow-hidden bg-stone-950">
+
+        <!-- PAGE 1: AUTHENTICATION (LOGIN / REGISTER / RESET) -->
+        <section id="page-auth" class="app-page active flex-col items-center justify-center h-full p-4 overflow-y-auto">
+            <div class="w-full max-w-md bg-stone-900/80 border border-stone-800 backdrop-blur-md rounded-2xl p-6 shadow-2xl my-auto">
+                <div class="text-center mb-6">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-800 mx-auto flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-amber-900/40 mb-3">
+                        <i class="fa-solid fa-mug-hot"></i>
+                    </div>
+                    <h2 id="auth-title" class="text-2xl font-bold text-stone-100">Welcome to Cappuccino</h2>
+                    <p id="auth-subtitle" class="text-xs text-stone-400 mt-1">Connect, Follow & Live Chat with People Publicly</p>
+                </div>
+
+                <!-- Auth Form -->
+                <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                    <div id="field-fullname" class="space-y-1">
+                        <label class="text-xs text-stone-300 font-medium">Full Name</label>
+                        <input type="text" id="input-fullname" placeholder="Alex Morgan" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-sm text-stone-100 focus:outline-none focus:border-amber-600 transition">
+                    </div>
+
+                    <div id="field-handle" class="space-y-1">
+                        <label class="text-xs text-stone-300 font-medium">Public Handle (@username)</label>
+                        <input type="text" id="input-handle" placeholder="alexmorgan" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-sm text-stone-100 focus:outline-none focus:border-amber-600 transition">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-xs text-stone-300 font-medium">Email Address</label>
+                        <input type="email" id="input-email" required placeholder="alex@example.com" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-sm text-stone-100 focus:outline-none focus:border-amber-600 transition">
+                    </div>
+
+                    <div id="field-password" class="space-y-1">
+                        <label class="text-xs text-stone-300 font-medium">Password</label>
+                        <input type="password" id="input-password" placeholder="••••••••" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-sm text-stone-100 focus:outline-none focus:border-amber-600 transition">
+                    </div>
+
+                    <button type="submit" id="btn-auth-submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-2.5 rounded-xl transition shadow-lg shadow-amber-900/30 mt-2">
+                        Create Account
+                    </button>
+                </form>
+
+                <div class="mt-4 pt-4 border-t border-stone-800/80 flex items-center justify-between text-xs">
+                    <button id="toggle-auth-mode" onclick="toggleAuthMode()" class="text-amber-500 hover:underline">
+                        Already have an account? Sign In
+                    </button>
+                    <button id="btn-reset-pw" onclick="handlePasswordReset()" class="text-stone-400 hover:underline">
+                        Forgot password?
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE 2: DASHBOARD & CONVERSATIONS DISCOVERY -->
+        <section id="page-dashboard" class="app-page flex-col h-full w-full max-w-4xl mx-auto p-4 md:p-6 overflow-hidden">
+            <div class="flex flex-col h-full bg-stone-900/50 border border-stone-800 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
+                
+                <!-- Search & Navigation Tabs -->
+                <div class="p-4 border-b border-stone-800 bg-stone-900/80 space-y-3 shrink-0">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-stone-500 text-sm"></i>
+                        <input type="text" id="dashboard-search-input" onkeyup="handleDashboardSearch(this.value)" placeholder="Search users by name or @handle..." class="w-full bg-stone-950 border border-stone-800 rounded-xl pl-10 pr-4 py-2 text-sm text-stone-100 focus:outline-none focus:border-amber-600 transition">
+                    </div>
+
+                    <div class="flex items-center space-x-2 border-b border-stone-800 pb-1">
+                        <button onclick="switchDashboardTab('chats')" id="tab-btn-chats" class="tab-btn px-4 py-2 text-xs font-semibold rounded-lg bg-amber-600 text-white transition">
+                            <i class="fa-solid fa-comments mr-1.5"></i> My Chats
+                        </button>
+                        <button onclick="switchDashboardTab('discover')" id="tab-btn-discover" class="tab-btn px-4 py-2 text-xs font-semibold rounded-lg bg-stone-800 text-stone-400 hover:text-stone-200 transition">
+                            <i class="fa-solid fa-compass mr-1.5"></i> Discover People
+                        </button>
+                        <button onclick="switchDashboardTab('groups')" id="tab-btn-groups" class="tab-btn px-4 py-2 text-xs font-semibold rounded-lg bg-stone-800 text-stone-400 hover:text-stone-200 transition">
+                            <i class="fa-solid fa-users mr-1.5"></i> Groups
+                        </button>
+                    </div>
+                </div>
+
+                <!-- List Content Area -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-3" id="dashboard-list-container">
+                    <!-- Dynamic Items Rendered Here -->
+                </div>
+
+                <!-- Footer Actions -->
+                <div id="dashboard-footer-actions" class="p-3 bg-stone-900 border-t border-stone-800 flex justify-between items-center text-xs text-stone-400 shrink-0">
+                    <span>Cappuccino Live Network v2.8</span>
+                    <button onclick="openCreateGroupModal()" class="bg-stone-800 hover:bg-stone-700 text-amber-500 hover:text-amber-400 px-3 py-1.5 rounded-lg border border-stone-700 transition font-medium">
+                        <i class="fa-solid fa-plus mr-1"></i> New Group
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE 3: CHAT ROOM VIEW -->
+        <section id="page-chatroom" class="app-page flex-col h-full w-full max-w-4xl mx-auto p-2 md:p-4 overflow-hidden">
+            <div class="flex flex-col h-full bg-stone-900/60 border border-stone-800 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
+                
+                <!-- Chat Navigation Header -->
+                <div class="px-4 py-3 bg-stone-900/90 border-b border-stone-800 flex items-center justify-between shrink-0">
+                    <div class="flex items-center space-x-3">
+                        <button onclick="navigateTo('page-dashboard')" class="w-9 h-9 rounded-xl bg-stone-800 hover:bg-stone-700 border border-stone-700 flex items-center justify-center text-stone-300 transition">
+                            <i class="fa-solid fa-arrow-left"></i>
+                        </button>
+                        
+                        <div class="flex items-center space-x-3 cursor-pointer" onclick="openActiveChatProfile()">
+                            <div class="relative">
+                                <img id="chat-header-avatar" src="https://placehold.co/100x100/d97706/ffffff?text=C" class="w-10 h-10 rounded-full object-cover border border-stone-700">
+                                <span id="chat-header-badge" class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-500 border-2 border-stone-900"></span>
+                            </div>
+                            <div>
+                                <h3 id="chat-header-title" class="font-bold text-sm text-stone-100 flex items-center">
+                                    <span>Chat Target</span>
+                                </h3>
+                                <p id="chat-header-subtitle" class="text-xs text-amber-500 font-medium">Active Now</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <button onclick="refreshCurrentChat()" class="w-8 h-8 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-stone-200 flex items-center justify-center transition">
+                            <i class="fa-solid fa-rotate-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chat Messages Viewport -->
+                <div id="chat-messages-container" class="flex-1 overflow-y-auto p-4 space-y-3 bg-stone-950/40">
+                    <!-- Dynamic Messages -->
+                </div>
+
+                <!-- Attachment Preview -->
+                <div id="attachment-preview" class="hidden px-4 py-2 bg-stone-900 border-t border-stone-800 items-center justify-between">
+                    <div class="flex items-center space-x-2 overflow-hidden">
+                        <i class="fa-solid fa-paperclip text-amber-500 text-xs"></i>
+                        <span id="attachment-name" class="text-xs text-stone-300 truncate">file.jpg</span>
+                    </div>
+                    <button onclick="clearPendingAttachment()" class="text-stone-400 hover:text-red-400 text-xs">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Message Input Form -->
+                <div class="p-3 bg-stone-900/90 border-t border-stone-800 shrink-0">
+                    <form onsubmit="handleSendMessage(event)" class="flex items-center space-x-2">
+                        <input type="file" id="file-input" class="hidden" onchange="handleFileSelected(event)">
+                        <button type="button" onclick="document.getElementById('file-input').click()" class="w-10 h-10 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-amber-500 flex items-center justify-center transition shrink-0 border border-stone-700">
+                            <i class="fa-solid fa-paperclip"></i>
+                        </button>
+
+                        <input type="text" id="chat-input-text" placeholder="Write a message..." class="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-4 py-2.5 text-sm text-stone-100 focus:outline-none focus:border-amber-600 transition">
+
+                        <button type="submit" class="w-10 h-10 rounded-xl bg-amber-600 hover:bg-amber-500 text-white flex items-center justify-center transition shrink-0 shadow-md shadow-amber-900/30">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE 4: PUBLIC PROFILE VIEW -->
+        <section id="page-profile" class="app-page flex-col h-full w-full max-w-2xl mx-auto p-4 overflow-y-auto">
+            <div class="bg-stone-900/70 border border-stone-800 rounded-2xl p-6 shadow-2xl backdrop-blur-md my-auto space-y-6">
+                
+                <div class="flex items-center justify-between border-b border-stone-800 pb-4">
+                    <button onclick="navigateTo('page-dashboard')" class="flex items-center space-x-2 text-xs text-stone-400 hover:text-amber-500 transition">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>Back to Dashboard</span>
+                    </button>
+                    <span id="profile-view-badge" class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-950/60 text-amber-400 border border-amber-800/50">
+                        Public Profile
+                    </span>
+                </div>
+
+                <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6 text-center md:text-left">
+                    <div class="relative">
+                        <img id="profile-avatar" src="https://placehold.co/150x150/d97706/ffffff?text=User" class="w-24 h-24 rounded-full object-cover border-2 border-amber-600 shadow-xl">
+                        <button id="btn-edit-avatar" onclick="triggerAvatarUpload()" class="hidden absolute bottom-0 right-0 w-8 h-8 rounded-full bg-amber-600 hover:bg-amber-500 text-white items-center justify-center text-xs shadow-md">
+                            <i class="fa-solid fa-camera"></i>
+                        </button>
+                        <input type="file" id="avatar-file-input" class="hidden" accept="image/*" onchange="handleAvatarSelected(event)">
+                    </div>
+
+                    <div class="flex-1 space-y-1">
+                        <h2 id="profile-fullname" class="text-2xl font-bold text-stone-100">User Full Name</h2>
+                        <p id="profile-handle" class="text-sm text-amber-500 font-medium">@username</p>
+                        <p id="profile-status" class="text-xs text-stone-400 flex items-center justify-center md:justify-start space-x-2 pt-1">
+                            <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                            <span id="profile-status-text">Active Now</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-stone-950/60 border border-stone-800 rounded-xl p-4 space-y-2">
+                    <h4 class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Bio</h4>
+                    <p id="profile-bio" class="text-sm text-stone-200">Passionate Cappuccino user exploring public channels and direct chats.</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="bg-stone-950/40 border border-stone-800 p-3 rounded-xl">
+                        <span id="profile-followers-count" class="block text-lg font-bold text-amber-500">12</span>
+                        <span class="text-xs text-stone-400">Followers</span>
+                    </div>
+                    <div class="bg-stone-950/40 border border-stone-800 p-3 rounded-xl">
+                        <span id="profile-following-count" class="block text-lg font-bold text-amber-500">24</span>
+                        <span class="text-xs text-stone-400">Following</span>
+                    </div>
+                </div>
+
+                <!-- Profile Actions -->
+                <div class="pt-2 flex items-center space-x-3">
+                    <button id="btn-profile-follow" onclick="handleToggleFollow()" class="flex-1 bg-stone-800 hover:bg-stone-700 text-stone-200 font-medium py-2.5 rounded-xl border border-stone-700 transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-user-plus text-xs"></i>
+                        <span id="lbl-follow-btn">Follow</span>
+                    </button>
+                    
+                    <button id="btn-profile-chat" onclick="handleStartChatFromProfile()" class="flex-1 bg-amber-600 hover:bg-amber-500 text-white font-medium py-2.5 rounded-xl transition flex items-center justify-center space-x-2 shadow-lg shadow-amber-900/30">
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                        <span>Send Message</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- CREATE GROUP MODAL -->
+    <div id="modal-create-group" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-stone-900 border border-stone-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-stone-800 pb-3">
+                <h3 class="font-bold text-stone-100">Create Public Group Chat</h3>
+                <button onclick="closeCreateGroupModal()" class="text-stone-400 hover:text-stone-200">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleCreateGroupSubmit(event)" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-xs text-stone-300 font-medium">Group Name</label>
+                    <input type="text" id="input-group-name" required placeholder="e.g. Coffee & Tech" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-sm text-stone-100 focus:outline-none focus:border-amber-600">
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-xs text-stone-300 font-medium">Description</label>
+                    <textarea id="input-group-desc" rows="2" placeholder="What is this group about?" class="w-full bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-sm text-stone-100 focus:outline-none focus:border-amber-600"></textarea>
+                </div>
+
+                <div class="pt-2 flex items-center justify-end space-x-3">
+                    <button type="button" onclick="closeCreateGroupModal()" class="px-4 py-2 rounded-xl text-xs text-stone-400 hover:text-stone-200">Cancel</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-xs bg-amber-600 hover:bg-amber-500 text-white font-semibold shadow-md">Create Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        /* --- GLOBAL APP CONFIG & INITIALIZATION --- */
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'cappuccino-social-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "demo-api-key",
+            authDomain: "demo.firebaseapp.com",
+            projectId: "demo-project",
+            storageBucket: "demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:demo"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        /* --- PATH GENERATORS --- */
+        const PATHS = {
+            publicUsers: () => collection(db, 'artifacts', appId, 'public', 'data', 'users'),
+            userDoc: (uid) => doc(db, 'artifacts', appId, 'public', 'data', 'users', uid),
+            publicMessages: () => collection(db, 'artifacts', appId, 'public', 'data', 'messages'),
+            publicGroups: () => collection(db, 'artifacts', appId, 'public', 'data', 'groups')
+        };
+
+        /* --- STATE ENGINE --- */
+        const state = {
+            currentUser: null,
+            userProfile: null,
+            activePage: 'page-auth',
+            dashboardTab: 'chats',
+            authMode: 'login',
+            activeChat: null,
+            allUsers: [],
+            allGroups: [
+                { id: 'grp-lounge', name: 'Cappuccino Lounge', description: 'General public social hangout space', createdBy: 'system' },
+                { id: 'grp-tech', name: 'Tech & Coffee', description: 'Discussions about web apps, code and AI', createdBy: 'system' }
+            ],
+            messages: [],
+            pendingAttachment: null,
+            localMode: false
+        };
+
+        /* --- SEED DEMO USERS --- */
+        // Removed static demo seed users for clean public user-to-user experience
+        const SEED_USERS = [];
+
+        /* --- INIT AUTHENTICATION WITH ROBUST ERROR HANDLING --- */
+        window.addEventListener('DOMContentLoaded', async () => {
+            initAuth();
+            startHeartbeat();
+        });
+
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            handleUserLoggedIn(user);
+                        } else {
+                            navigateTo('page-auth');
+                        }
+                    });
+                }
+            } catch (err) {
+                console.warn('Firebase Auth Fallback Engaged:', err);
+                state.localMode = true;
+                navigateTo('page-auth');
+            }
+        }
+
+        async function handleUserLoggedIn(user) {
+            state.currentUser = user;
+            
+            try {
+                const uDoc = await getDoc(PATHS.userDoc(user.uid));
+                if (uDoc.exists()) {
+                    state.userProfile = uDoc.data();
+                } else {
+                    state.userProfile = {
+                        uid: user.uid,
+                        fullName: user.displayName || user.email?.split('@')[0] || 'Cappuccino User',
+                        handle: (user.email?.split('@')[0] || 'user_' + user.uid.substring(0, 5)).toLowerCase(),
+                        avatar: `https://placehold.co/100x100/d97706/ffffff?text=${(user.email?.[0] || 'U').toUpperCase()}`,
+                        bio: 'Passionate Cappuccino user exploring public channels and direct chats.',
+                        lastActive: Date.now(),
+                        isOnline: true
+                    };
+                    await setDoc(PATHS.userDoc(user.uid), state.userProfile);
+                }
+            } catch (e) {
+                state.localMode = true;
+                state.userProfile = {
+                    uid: user.uid || 'usr-local',
+                    fullName: user.email?.split('@')[0] || 'Alex Morgan',
+                    handle: (user.email?.split('@')[0] || 'alexmorgan').toLowerCase(),
+                    avatar: 'https://placehold.co/100x100/d97706/ffffff?text=A',
+                    bio: 'Passionate Cappuccino user exploring public channels.',
+                    lastActive: Date.now(),
+                    isOnline: true
+                };
+            }
+
+            // Sync Header UI
+            document.getElementById('hdr-user-name').innerText = state.userProfile.fullName;
+            document.getElementById('hdr-user-avatar').src = state.userProfile.avatar;
+            document.getElementById('header-auth-controls').classList.remove('hidden');
+            document.getElementById('header-auth-controls').classList.add('flex');
+
+            subscribeRealtimeData();
+            navigateTo('page-dashboard');
+            showToast(`Welcome back, ${state.userProfile.fullName}!`);
+        }
+
+        /* --- HEARTBEAT --- */
+        function startHeartbeat() {
+            setInterval(async () => {
+                if (state.currentUser && state.userProfile && !state.localMode) {
+                    try {
+                        await updateDoc(PATHS.userDoc(state.currentUser.uid), {
+                            lastActive: Date.now(),
+                            isOnline: true
+                        });
+                    } catch(e){}
+                }
+            }, 15000);
+        }
+
+      /* --- REALTIME SUPABASE SUBSCRIPTIONS --- */
+function subscribeRealtimeData() {
+    // 1. Fetch & Subscribe Profiles/Users
+    supabase
+        .channel('public:profiles')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, payload => {
+            fetchProfiles();
+        })
+        .subscribe();
+
+    fetchProfiles();
+
+    // 2. Fetch & Subscribe Messages
+    supabase
+        .channel('public:messages')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
+            fetchMessages();
+        })
+        .subscribe();
+
+    fetchMessages();
+}
+
+async function fetchProfiles() {
+    const { data, error } = await supabase.from('profiles').select('*');
+    if (!error && data) {
+        state.allUsers = data;
+        if (state.activePage === 'page-dashboard') {
+            renderDashboardList();
+        }
+    }
+}
+
+async function fetchMessages() {
+    const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+    if (!error && data) {
+        state.messages = data.map(m => ({
+            id: m.id,
+            sender: m.sender_id,
+            text: m.text,
+            recipient: m.recipient_id,
+            groupId: m.group_id,
+            timestamp: new Date(m.created_at).getTime(),
+            mediaUrl: m.media_url
+        }));
+        if (typeof renderChatMessages === 'function') {
+            renderChatMessages();
+        }
+    }
+}
+
+        /* --- ROUTING ENGINE --- */
+        window.navigateTo = function(pageId, params = {}) {
+            const pages = ['page-auth', 'page-dashboard', 'page-chatroom', 'page-profile'];
+            pages.forEach(p => {
+                const el = document.getElementById(p);
+                if (el) {
+                    if (p === pageId) {
+                        el.classList.add('active');
+                    } else {
+                        el.classList.remove('active');
+                    }
+                }
+            });
+
+            state.activePage = pageId;
+
+            if (pageId === 'page-dashboard') {
+                renderDashboardList();
+            } else if (pageId === 'page-chatroom') {
+                if (params.chat) state.activeChat = params.chat;
+                renderChatRoom();
+            } else if (pageId === 'page-profile') {
+                const userToDisplay = params.user || state.userProfile;
+                renderUserProfile(userToDisplay, params.isSelf);
+            }
+        };
+
+        window.openCurrentProfile = function() {
+            if (state.userProfile) {
+                navigateTo('page-profile', { user: state.userProfile, isSelf: true });
+            }
+        };
+
+        /* --- AUTH CONTROLLERS --- */
+        window.toggleAuthMode = function() {
+            state.authMode = state.authMode === 'login' ? 'register' : 'login';
+            const isReg = state.authMode === 'register';
+
+            document.getElementById('auth-title').innerText = isReg ? 'Create Cappuccino ID' : 'Welcome Back';
+            document.getElementById('auth-subtitle').innerText = isReg ? 'Join the public social live chat network' : 'Sign in to continue to Cappuccino';
+            document.getElementById('field-fullname').style.display = isReg ? 'block' : 'none';
+            document.getElementById('field-handle').style.display = isReg ? 'block' : 'none';
+            document.getElementById('btn-auth-submit').innerText = isReg ? 'Create Account' : 'Sign In';
+            document.getElementById('toggle-auth-mode').innerText = isReg ? 'Already have an account? Sign In' : "Don't have an account? Register";
+        };
+
+        window.handleAuthSubmit = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('input-email').value.trim();
+            const password = document.getElementById('input-password').value.trim();
+
+            if (!email || !password) {
+                showToast('Please fill in email and password', 'error');
+                return;
+            }
+
+            try {
+                if (state.authMode === 'register') {
+                    const fullName = document.getElementById('input-fullname').value.trim() || 'Cappuccino User';
+                    const handle = document.getElementById('input-handle').value.trim().toLowerCase() || 'user_' + Date.now().toString().slice(-4);
+
+                    const cred = await createUserWithEmailAndPassword(auth, email, password);
+                    const newUser = {
+                        uid: cred.user.uid,
+                        fullName: fullName,
+                        handle: handle.startsWith('@') ? handle.slice(1) : handle,
+                        avatar: `https://placehold.co/100x100/d97706/ffffff?text=${fullName[0].toUpperCase()}`,
+                        bio: 'Exploring Cappuccino live chat!',
+                        lastActive: Date.now(),
+                        isOnline: true
+                    };
+                    await setDoc(PATHS.userDoc(cred.user.uid), newUser);
+                    handleUserLoggedIn(cred.user);
+                } else {
+                    const cred = await signInWithEmailAndPassword(auth, email, password);
+                    handleUserLoggedIn(cred.user);
+                }
+            } catch (err) {
+                console.warn('Auth Exception:', err);
+                // Handle auth/operation-not-allowed or disable errors gracefully
+                if (err.code === 'auth/operation-not-allowed') {
+                    showToast('Using Instant Access Mode (Enable Email Auth in Firebase Console for production)', 'info');
+                } else {
+                    showToast(err.message.replace('Firebase:', ''), 'error');
+                }
+
+                // Fallback local authentication session so user experience is never blocked
+                const fallbackUser = {
+                    uid: 'usr-' + Date.now(),
+                    email: email,
+                    displayName: email.split('@')[0]
+                };
+                handleUserLoggedIn(fallbackUser);
+            }
+        };
+
+        window.handlePasswordReset = async function() {
+            const email = document.getElementById('input-email').value.trim();
+            if (!email) {
+                showToast('Enter email address to reset password', 'error');
+                return;
+            }
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showToast('Password reset email sent!');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        };
+
+        window.handleLogout = async function() {
+            try {
+                await signOut(auth);
+            } catch(e){}
+            state.currentUser = null;
+            state.userProfile = null;
+            document.getElementById('header-auth-controls').classList.add('hidden');
+            navigateTo('page-auth');
+            showToast('Logged out');
+        };
+
+        /* --- DASHBOARD CONTROLLERS --- */
+        window.switchDashboardTab = function(tabName) {
+            state.dashboardTab = tabName;
+            ['chats', 'discover', 'groups'].forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                if (t === tabName) {
+                    btn.className = 'tab-btn px-4 py-2 text-xs font-semibold rounded-lg bg-amber-600 text-white transition';
+                } else {
+                    btn.className = 'tab-btn px-4 py-2 text-xs font-semibold rounded-lg bg-stone-800 text-stone-400 hover:text-stone-200 transition';
+                }
+            });
+            renderDashboardList();
+        };
+
+        window.handleDashboardSearch = function(query) {
+            renderDashboardList(query.toLowerCase());
+        };
+
+        function renderDashboardList(filter = '') {
+            const container = document.getElementById('dashboard-list-container');
+            container.innerHTML = '';
+
+            if (state.dashboardTab === 'chats' || state.dashboardTab === 'discover') {
+                let list = state.allUsers.filter(u => u.uid !== state.currentUser?.uid);
+                
+                // If on 'chats' tab, filter users with whom we have existing message history
+                if (state.dashboardTab === 'chats') {
+                    const myUid = state.currentUser?.uid;
+                    const chattedUserIds = new Set();
+                    state.messages.forEach(m => {
+                        if (m.senderId === myUid && m.recipientId) chattedUserIds.add(m.recipientId);
+                        if (m.recipientId === myUid && m.senderId) chattedUserIds.add(m.senderId);
+                    });
+                    list = list.filter(u => chattedUserIds.has(u.uid));
+                }
+
+                if (filter) {
+                    list = list.filter(u => u.fullName.toLowerCase().includes(filter) || u.handle.toLowerCase().includes(filter));
+                }
+
+                if (list.length === 0) {
+                    const emptyMsg = state.dashboardTab === 'chats' 
+                        ? 'No active chats yet. Go to "Discover People" to start chatting with friends!' 
+                        : 'No public users found yet. Invite your friends to join!';
+                    container.innerHTML = `<p class="text-center text-xs text-stone-500 py-8 px-4">${emptyMsg}</p>`;
+                    return;
+                }
+
+                list.forEach(u => {
+                    const statusText = formatLastActive(u.lastActive, u.isOnline);
+                    const div = document.createElement('div');
+                    div.className = 'p-3 rounded-xl bg-stone-900/80 hover:bg-stone-800 border border-stone-800/80 flex items-center justify-between transition';
+                    div.innerHTML = `
+                        <div class="flex items-center space-x-3 cursor-pointer user-profile-link">
+                            <div class="relative">
+                                <img src="${u.avatar || 'https://placehold.co/100x100/d97706/ffffff?text=U'}" class="w-11 h-11 rounded-full object-cover border border-stone-700">
+                                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${u.isOnline ? 'bg-green-500' : 'bg-stone-600'} border-2 border-stone-900"></span>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-sm text-stone-200">${u.fullName}</h4>
+                                <p class="text-xs text-amber-500">@${u.handle} • <span class="text-stone-400">${statusText}</span></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="btn-chat-user p-2 rounded-lg bg-amber-600/20 text-amber-400 hover:bg-amber-600 hover:text-white text-xs transition">
+                                <i class="fa-solid fa-message"></i>
+                            </button>
+                        </div>
+                    `;
+
+                    div.querySelector('.user-profile-link').addEventListener('click', () => {
+                        navigateTo('page-profile', { user: u, isSelf: false });
+                    });
+                    div.querySelector('.btn-chat-user').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        navigateTo('page-chatroom', { chat: { type: 'direct', user: u } });
+                    });
+
+                    container.appendChild(div);
+                });
+            } else if (state.dashboardTab === 'groups') {
+                state.allGroups.forEach(g => {
+                    const div = document.createElement('div');
+                    div.className = 'p-3.5 rounded-xl bg-stone-900/80 hover:bg-stone-800 border border-stone-800 flex items-center justify-between cursor-pointer transition';
+                    div.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <div class="w-11 h-11 rounded-xl bg-amber-950/60 border border-amber-800/50 flex items-center justify-center text-amber-500 font-bold">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-sm text-stone-200">${g.name}</h4>
+                                <p class="text-xs text-stone-400">${g.description}</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-xs text-stone-500"></i>
+                    `;
+                    div.addEventListener('click', () => {
+                        navigateTo('page-chatroom', { chat: { type: 'group', group: g } });
+                    });
+                    container.appendChild(div);
+                });
+            }
+        }
+
+        /* --- CHAT ROOM CONTROLLERS --- */
+        function renderChatRoom() {
+            if (!state.activeChat) {
+                navigateTo('page-dashboard');
+                return;
+            }
+
+            const headerTitle = document.getElementById('chat-header-title');
+            const headerSubtitle = document.getElementById('chat-header-subtitle');
+            const headerAvatar = document.getElementById('chat-header-avatar');
+            const headerBadge = document.getElementById('chat-header-badge');
+
+            if (state.activeChat.type === 'direct') {
+                const u = state.activeChat.user;
+                headerTitle.innerText = u.fullName;
+                headerSubtitle.innerText = formatLastActive(u.lastActive, u.isOnline);
+                headerAvatar.src = u.avatar || 'https://placehold.co/100x100/d97706/ffffff?text=U';
+                headerBadge.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full ${u.isOnline ? 'bg-green-500' : 'bg-stone-600'} border-2 border-stone-900`;
+            } else {
+                const g = state.activeChat.group;
+                headerTitle.innerText = g.name;
+                headerSubtitle.innerText = 'Public Group Channel';
+                headerAvatar.src = 'https://placehold.co/100x100/d97706/ffffff?text=GRP';
+                headerBadge.className = 'hidden';
+            }
+
+            const container = document.getElementById('chat-messages-container');
+            container.innerHTML = '';
+
+            let filtered = [];
+            if (state.activeChat.type === 'direct') {
+                const otherUid = state.activeChat.user.uid;
+                const myUid = state.currentUser?.uid;
+                filtered = state.messages.filter(m => 
+                    (m.senderId === myUid && m.recipientId === otherUid) ||
+                    (m.senderId === otherUid && m.recipientId === myUid)
+                );
+            } else {
+                filtered = state.messages.filter(m => m.groupId === state.activeChat.group.id);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 space-y-2">
+                        <i class="fa-solid fa-paper-plane text-2xl text-amber-600/50"></i>
+                        <p class="text-xs text-stone-500">No messages yet. Send a message to start talking!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filtered.forEach(m => {
+                const isMe = m.senderId === state.currentUser?.uid;
+                const timeStr = m.timestamp ? new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now';
+
+                const div = document.createElement('div');
+                div.className = `flex ${isMe ? 'justify-end' : 'justify-start'} my-1`;
+                
+                div.innerHTML = `
+                    <div class="max-w-[80%] md:max-w-[65%] rounded-2xl px-4 py-2.5 text-xs ${isMe ? 'bg-amber-600 text-white rounded-br-none shadow-md shadow-amber-900/20' : 'bg-stone-900 text-stone-200 border border-stone-800 rounded-bl-none'} space-y-1">
+                        ${!isMe && state.activeChat.type === 'group' ? `<p class="font-bold text-[10px] text-amber-400">${m.senderName || 'Member'}</p>` : ''}
+                        ${m.mediaUrl ? `<img src="${m.mediaUrl}" class="rounded-xl max-h-48 w-full object-cover my-1">` : ''}
+                        <p class="leading-relaxed break-words">${escapeHTML(m.text || '')}</p>
+                        <div class="flex items-center justify-end space-x-1 text-[9px] ${isMe ? 'text-amber-200' : 'text-stone-400'} pt-0.5">
+                            <span>${timeStr}</span>
+                            ${isMe ? `<i class="fa-solid fa-check-double text-[8px]"></i>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        window.refreshCurrentChat = function() {
+            renderChatRoom();
+            showToast('Chat refreshed');
+        };
+
+        window.handleSendMessage = async function(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input-text');
+            const text = input.value.trim();
+
+            if (!text && !state.pendingAttachment) return;
+
+            const msgObj = {
+                senderId: state.currentUser?.uid || 'usr-local',
+                senderName: state.userProfile?.fullName || 'User',
+                text: text,
+                timestamp: Date.now(),
+                mediaUrl: state.pendingAttachment || null
+            };
+
+            if (state.activeChat.type === 'direct') {
+                msgObj.recipientId = state.activeChat.user.uid;
+            } else {
+                msgObj.groupId = state.activeChat.group.id;
+            }
+
+            input.value = '';
+            clearPendingAttachment();
+
+            if (state.localMode) {
+                state.messages.push(msgObj);
+                renderChatRoom();
+            } else {
+                try {
+                    await addDoc(PATHS.publicMessages(), msgObj);
+                } catch (e) {
+                    state.messages.push(msgObj);
+                    renderChatRoom();
+                }
+            }
+        };
+
+        window.openActiveChatProfile = function() {
+            if (state.activeChat?.type === 'direct') {
+                navigateTo('page-profile', { user: state.activeChat.user });
+            }
+        };
+
+        /* --- PUBLIC PROFILE CONTROLLERS --- */
+        function renderUserProfile(user, isSelf = false) {
+            document.getElementById('profile-fullname').innerText = user.fullName;
+            document.getElementById('profile-handle').innerText = `@${user.handle}`;
+            document.getElementById('profile-avatar').src = user.avatar || 'https://placehold.co/150x150/d97706/ffffff?text=User';
+            document.getElementById('profile-bio').innerText = user.bio || 'Passionate Cappuccino user.';
+            document.getElementById('profile-status-text').innerText = formatLastActive(user.lastActive, user.isOnline);
+
+            const followBtn = document.getElementById('btn-profile-follow');
+            const editAvatarBtn = document.getElementById('btn-edit-avatar');
+
+            if (isSelf || user.uid === state.currentUser?.uid) {
+                followBtn.classList.add('hidden');
+                editAvatarBtn.classList.remove('hidden');
+                editAvatarBtn.classList.add('flex');
+            } else {
+                followBtn.classList.remove('hidden');
+                editAvatarBtn.classList.add('hidden');
+            }
+        }
+
+        window.handleToggleFollow = function() {
+            const btn = document.getElementById('lbl-follow-btn');
+            const isFollowing = btn.innerText === 'Following';
+            btn.innerText = isFollowing ? 'Follow' : 'Following';
+            showToast(isFollowing ? 'Unfollowed user' : 'Now following user!');
+        };
+
+        window.handleStartChatFromProfile = function() {
+            const handle = document.getElementById('profile-handle').innerText.replace('@', '');
+            const targetUser = state.allUsers.find(u => u.handle === handle);
+            if (targetUser) {
+                navigateTo('page-chatroom', { chat: { type: 'direct', user: targetUser } });
+            } else {
+                showToast('User not found', 'error');
+            }
+        };
+
+        /* --- ATTACHMENTS & AVATARS --- */
+        window.handleFileSelected = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                state.pendingAttachment = evt.target.result;
+                document.getElementById('attachment-preview').classList.remove('hidden');
+                document.getElementById('attachment-preview').classList.add('flex');
+                document.getElementById('attachment-name').innerText = file.name;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.clearPendingAttachment = function() {
+            state.pendingAttachment = null;
+            document.getElementById('attachment-preview').classList.add('hidden');
+            document.getElementById('file-input').value = '';
+        };
+
+        window.triggerAvatarUpload = function() {
+            document.getElementById('avatar-file-input').click();
+        };
+
+        window.handleAvatarSelected = async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(evt) {
+                const avatarData = evt.target.result;
+                document.getElementById('profile-avatar').src = avatarData;
+                document.getElementById('hdr-user-avatar').src = avatarData;
+                if (state.userProfile) {
+                    state.userProfile.avatar = avatarData;
+                    if (!state.localMode && state.currentUser) {
+                        try {
+                            await updateDoc(PATHS.userDoc(state.currentUser.uid), { avatar: avatarData });
+                        } catch(e){}
+                    }
+                }
+                showToast('Profile photo updated!');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        /* --- GROUPS --- */
+        window.openCreateGroupModal = function() {
+            document.getElementById('modal-create-group').classList.remove('hidden');
+            document.getElementById('modal-create-group').classList.add('flex');
+        };
+
+        window.closeCreateGroupModal = function() {
+            document.getElementById('modal-create-group').classList.add('hidden');
+        };
+
+        window.handleCreateGroupSubmit = function(e) {
+            e.preventDefault();
+            const name = document.getElementById('input-group-name').value.trim();
+            const desc = document.getElementById('input-group-desc').value.trim();
+
+            if (!name) return;
+
+            const newGroup = {
+                id: 'grp-' + Date.now(),
+                name: name,
+                description: desc || 'Public discussion group',
+                createdBy: state.currentUser?.uid || 'usr-local'
+            };
+
+            state.allGroups.push(newGroup);
+            closeCreateGroupModal();
+            switchDashboardTab('groups');
+            showToast('New group created!');
+        };
+
+        /* --- UTILITY HELPERS --- */
+        function formatLastActive(timestamp, isOnline) {
+            if (isOnline) return 'Active Now';
+            if (!timestamp) return 'Offline';
+            const diff = Math.floor((Date.now() - timestamp) / 60000);
+            if (diff < 1) return 'Active just now';
+            if (diff < 60) return `Active ${diff}m ago`;
+            const hours = Math.floor(diff / 60);
+            if (hours < 24) return `Active ${hours}h ago`;
+            return 'Offline';
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl text-xs font-medium text-white shadow-xl transition transform duration-300 translate-y-2 ${type === 'error' ? 'bg-red-600' : 'bg-amber-600'}`;
+            toast.innerText = msg;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
